@@ -14,27 +14,103 @@ import uvicorn
 import json
 from typing import List, Dict, Any, Optional
 import io
-
+import logging
 # --- Suppress Warnings ---
 warnings.filterwarnings("ignore")
 
 # --- Global Configuration ---
 ARTIFACT_DIR = Path("artifacts/final_models")
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-SITE_IDS = [f"site_{i}" for i in range(1, 8)]
+DEVICE = torch.device("mps" if torch.mps.is_available() else "cpu")
+
+logging.basicConfig(level=logging.INFO)
+logging.info(f"Using device: {DEVICE}")
+
+TARGET_COLUMNS = ["O3_target", "NO2_target"]
+LAT_LON_FILE = Path("Data_SIH_2025 2") / "lat_lon_sites.txt"
+
+
+
+def load_site_coordinates(path: Path) -> dict:
+    """
+    Load site coordinates from a text file and return a dict like:
+    {
+        "site_1": {"latitude": 28.69536, "longitude": 77.18168},
+        ...
+    }
+    Skips any rows with missing lat/lon so that JSON never sees NaN/inf.
+    """
+    if not path.exists():
+        raise FileNotFoundError(f"Site coordinate file not found: {path}")
+
+    # Whitespace separator -> handles tabs / multiple spaces
+    df = pd.read_csv(path, sep=r"\s+", engine="python")
+
+    # --- figure out which columns to use ---
+
+    # Site column (something like "Site")
+    site_col = None
+    for c in df.columns:
+        if "site" in c.lower():
+            site_col = c
+            break
+    if site_col is None:
+        raise KeyError(f"Could not find a 'site' column in {df.columns.tolist()}")
+
+    # All numeric columns
+    numeric_cols = [c for c in df.columns if np.issubdtype(df[c].dtype, np.number)]
+
+    # Preserve original order, but drop the site column itself
+    ordered_numeric = [c for c in df.columns if c in numeric_cols and c != site_col]
+
+    if len(ordered_numeric) < 2:
+        raise KeyError(
+            f"Need at least two numeric columns for lat/lon, got {ordered_numeric}"
+        )
+
+    # In your file: Site | Latitude | N | Longitude | E
+    # -> latitude = first numeric after site ("Latitude")
+    # -> longitude = second numeric after site ("N")
+    lat_col, lon_col = ordered_numeric[0], ordered_numeric[1]
+
+    coords: dict[str, dict[str, float]] = {}
+
+    for _, row in df.iterrows():
+        site_val = row[site_col]
+
+        # skip completely empty / NaN site rows
+        if pd.isna(site_val):
+            continue
+
+        # site IDs are 1,2,3,... -> convert to "site_1", ...
+        try:
+            site_idx = int(float(site_val))
+        except ValueError:
+            continue
+
+        lat = row[lat_col]
+        lon = row[lon_col]
+
+        # --- CRITICAL: NEVER let NaN into JSON ---
+        if pd.isna(lat) or pd.isna(lon):
+            # skip rows with missing lat/lon
+            continue
+
+        coords[f"site_{site_idx}"] = {
+            "latitude": float(lat),
+            "longitude": float(lon),
+        }
+
+    return coords
+
+
 TARGET_COLUMNS = ["O3_target", "NO2_target"]
 
-SITES_COORDINATES = {
-    "site_1": {"latitude": 28.69536, "longitude": 77.18168},
-    "site_2": {"latitude": 28.5718, "longitude": 77.07125},
-    "site_3": {"latitude": 28.58278, "longitude": 77.23441},
-    "site_4": {"latitude": 28.82286, "longitude": 77.10197},
-    "site_5": {"latitude": 28.53077, "longitude": 77.27123},
-    "site_6": {"latitude": 28.72954, "longitude": 77.09601},
-    "site_7": {"latitude": 28.71052, "longitude": 77.24951},
-}
+# Load site coordinates dynamically from file
+SITES_COORDINATES = load_site_coordinates(LAT_LON_FILE)
 
-# --- Helper Functions and Classes ---
+# Derive SITE_IDS from whatever was loaded
+SITE_IDS = sorted(SITES_COORDINATES.keys())
+
 
 def add_time_signals(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()

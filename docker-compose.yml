@@ -1,0 +1,24 @@
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: my_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mydb
+      
+      # Optional: provide a ready-to-use connection URL
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/mydb
+      # or for SSL disabled:
+      # DATABASE_URL: postgresql://postgres:postgres@postgres:5432/mydb?sslmode=disable
+
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

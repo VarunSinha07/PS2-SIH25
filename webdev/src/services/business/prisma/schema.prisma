@@ -33,6 +33,7 @@ model Business {
 
     transactions  Transaction[]
     subscriptions Subscription[]
+    usageLogs     UsageLog[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -67,4 +68,17 @@ model Transaction {
     createdAt DateTime @default(now())
 
     @@map("transaction")
+}
+
+model UsageLog {
+    id         String   @id @default(cuid())
+    businessId String
+    amount     Int // Amount consumed (positive) or granted
+    action     String // e.g. "API_CALL", "KEY_GENERATION"
+    resource   String? // e.g. "/aqi/predict"
+    createdAt  DateTime @default(now())
+
+    business Business @relation(fields: [businessId], references: [id])
+
+    @@map("usage_log")
 }

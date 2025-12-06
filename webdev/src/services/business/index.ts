@@ -143,20 +143,50 @@ export const businessService = new Elysia({ prefix: "/business" })
   })
   
   // Internal endpoint for Gateway to call
+  // Internal endpoint for Gateway to call
   .post("/credits/consume", async ({ body }) => {
-      const { userId, count } = body as { userId: string, count: number };
+      const { userId, count, resource } = body as { userId: string, count: number, resource?: string };
       const business = await prismaBusiness.business.findUnique({ where: { userId } });
       
       if (!business || business.credits < count) {
           return { success: false, error: "Insufficient Credits" };
       }
       
-      await prismaBusiness.business.update({
-          where: { userId },
-          data: { credits: { decrement: count }}
-      });
+      await prismaBusiness.$transaction([
+        prismaBusiness.business.update({
+            where: { userId },
+            data: { credits: { decrement: count }}
+        }),
+        prismaBusiness.usageLog.create({
+            data: {
+                businessId: business.id,
+                amount: count,
+                action: "API_CALL",
+                resource: resource || "UNKNOWN"
+            }
+        })
+      ]);
       
       return { success: true, remaining: business.credits - count };
+  })
+
+  .get("/usage", async (context: any) => {
+      const { headers, user } = context;
+      const userId = user?.id || headers['x-user-id'];
+      if (!userId) {
+          throw new Error("Unauthorized");
+      }
+
+      const business = await prismaBusiness.business.findUnique({ where: { userId } });
+      if (!business) return { usage: [] };
+
+      const logs = await prismaBusiness.usageLog.findMany({
+          where: { businessId: business.id },
+          orderBy: { createdAt: 'desc' },
+          take: 50 // Limit to last 50
+      });
+
+      return { usage: logs };
   });
 
 // Export type for Eden

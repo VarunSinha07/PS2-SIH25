@@ -36,7 +36,7 @@ import { MONITORING_SITES, getSiteName } from "@/lib/sites";
 import { calculatePollutionScore } from "@/lib/aqi-utils";
 
 // Force dynamic rendering to prevent build-time database access
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 // Mock data generator for critical regions if DB is empty
 const getCriticalRegions = (reports: any[]) => {
@@ -57,7 +57,7 @@ const getCriticalRegions = (reports: any[]) => {
     {
       id: "mock-2",
       region: "site_4", // Narela
-      o3: 180, // Poor -> High Category
+      o3: 60, // Poor -> High Category
       no2: 150, // Moderate
       recordedAt: new Date(),
       forecast: "Stable",
@@ -70,6 +70,14 @@ const getCriticalRegions = (reports: any[]) => {
       recordedAt: new Date(),
       forecast: "Falling",
     },
+    {
+      id: "mock-4",
+      region: "site_2", // Sirifort
+      o3: 170, // High
+      no2: 110, // High
+      recordedAt: new Date(),
+      forecast: "Rising", // Synergistic Case
+    },
   ];
 
   return mockData
@@ -79,12 +87,18 @@ const getCriticalRegions = (reports: any[]) => {
         ...d,
         aqi: score.score, // Using max concentration as proxy for AQI display
         pollutant: score.dominantPollutant,
-        category: score.category,
-        fullCategory: score.fullCategory,
+        category: score.category, // Low, Moderate, High, Very High, Severe
+        riskFactors: score.riskFactors,
+        isSynergistic: score.isSynergistic,
         details: score.details,
       };
     })
-    .filter((d) => d.category === "High" || d.category === "Severe"); // Only show High/Severe
+    .filter(
+      (d) =>
+        d.category === "High" ||
+        d.category === "Very High" ||
+        d.category === "Severe"
+    ); // Only show High+
 };
 
 export default async function GovDashboard() {
@@ -262,6 +276,8 @@ export default async function GovDashboard() {
                   className={`border-l-4 shadow-md hover:shadow-lg transition-shadow ${
                     isAlertSent
                       ? "border-l-gray-400 bg-gray-50"
+                      : region.category === "Severe"
+                      ? "border-l-purple-600 bg-red-50"
                       : "border-l-red-500"
                   }`}
                 >
@@ -269,22 +285,30 @@ export default async function GovDashboard() {
                     <div className="flex justify-between items-start">
                       <CardTitle
                         className={`text-lg font-bold flex items-center gap-2 ${
-                          isAlertSent ? "text-gray-600" : "text-red-700"
+                          isAlertSent ? "text-gray-600" : "text-slate-800"
                         }`}
                       >
                         {isAlertSent ? (
                           <CheckCircle className="h-5 w-5" />
                         ) : (
-                          <AlertTriangle className="h-5 w-5" />
+                          <AlertTriangle
+                            className={`h-5 w-5 ${
+                              region.category === "Severe"
+                                ? "text-purple-600"
+                                : "text-red-500"
+                            }`}
+                          />
                         )}
                         {regionName}
                       </CardTitle>
                       <div className="flex flex-col items-end gap-1">
                         <Badge
                           variant={isAlertSent ? "secondary" : "destructive"}
-                          className="text-sm"
+                          className={`text-sm ${
+                            region.category === "Severe" ? "bg-purple-600" : ""
+                          }`}
                         >
-                          Index: {region.aqi}
+                          {region.category} Risk
                         </Badge>
                         <div
                           className={`flex items-center text-xs font-medium ${trendColor}`}
@@ -295,17 +319,43 @@ export default async function GovDashboard() {
                       </div>
                     </div>
                     <CardDescription>
-                      <span className="font-semibold">
-                        Category: {region.fullCategory}
+                      <span className="font-semibold block mb-1">
+                        Dominant: {region.pollutant}
+                        {region.isSynergistic && (
+                          <Badge
+                            variant="outline"
+                            className="ml-2 border-purple-500 text-purple-700 bg-purple-50"
+                          >
+                            Synergistic Effect
+                          </Badge>
+                        )}
                       </span>
-                      <br />
-                      High concentration of {region.pollutant} detected.
                       {region.details && (
-                        <span className="text-xs text-muted-foreground block mt-1">
-                          NO2: {region.details.NO2.val} (
-                          {region.details.NO2.cat}) | O3:{" "}
-                          {region.details.O3.val} ({region.details.O3.cat})
-                        </span>
+                        <div className="grid grid-cols-2 gap-2 text-xs mt-2 bg-white p-2 rounded border">
+                          <div>
+                            <span className="font-medium">NO2:</span>{" "}
+                            {region.details.NO2.val} ({region.details.NO2.level}
+                            )
+                          </div>
+                          <div>
+                            <span className="font-medium">O3:</span>{" "}
+                            {region.details.O3.val} ({region.details.O3.level})
+                          </div>
+                        </div>
+                      )}
+                      {region.riskFactors && region.riskFactors.length > 0 && (
+                        <div className="mt-3 space-y-1">
+                          <p className="text-xs font-semibold text-slate-700">
+                            Health Risks:
+                          </p>
+                          <ul className="list-disc list-inside text-xs text-slate-600">
+                            {region.riskFactors.map(
+                              (risk: string, idx: number) => (
+                                <li key={idx}>{risk}</li>
+                              )
+                            )}
+                          </ul>
+                        </div>
                       )}
                     </CardDescription>
                   </CardHeader>
@@ -322,13 +372,13 @@ export default async function GovDashboard() {
                       <input
                         type="hidden"
                         name="message"
-                        value={`${
-                          region.fullCategory
-                        } air quality detected in ${regionName}. Dominant pollutant: ${
-                          region.pollutant
-                        } (Level: ${region.aqi}). Forecast indicates ${
-                          region.forecast || "continued high levels"
-                        }. Immediate action required.`}
+                        value={`ALERT: ${
+                          region.category
+                        } pollution levels detected in ${regionName}. 
+Dominant Pollutant: ${region.pollutant}. 
+Risk Factors: ${region.riskFactors.join(" ")} 
+Forecast: ${region.forecast}. 
+Immediate action required.`}
                       />
                       <input
                         type="hidden"

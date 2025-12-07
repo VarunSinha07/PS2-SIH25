@@ -1,57 +1,119 @@
 export function calculatePollutionScore(o3: number, no2: number) {
-  // CPCB Breakpoints (approximate/simplified for scoring)
-  // NO2 (24h): 0-40 (Good), 41-80 (Sat), 81-180 (Mod), 181-280 (Poor), 281-400 (Very Poor), >400 (Severe)
-  // O3 (8h): 0-50 (Good), 51-100 (Sat), 101-168 (Mod), 169-208 (Poor), 209-748 (Very Poor), >748 (Severe)
+  // --- Risk Thresholds (from User Requirements) ---
 
-  // We need to map these to a unified "Score" and "Category"
-  // Let's use a simple max-sub-index method like AQI.
+  // O3 Thresholds
+  // Low: < 100
+  // Moderate: 100 - 160
+  // High: 160 - 200
+  // Very High: 200 - 300
+  // Severe: > 300
 
-  // Helper to get sub-index
-  const getSubIndex = (val: number, breakpoints: number[]) => {
-    // breakpoints: [Good, Sat, Mod, Poor, Very Poor, Severe]
-    // e.g. [40, 80, 180, 280, 400]
-    if (val <= breakpoints[0]) return { idx: 0, cat: "Good" };
-    if (val <= breakpoints[1]) return { idx: 1, cat: "Satisfactory" };
-    if (val <= breakpoints[2]) return { idx: 2, cat: "Moderate" };
-    if (val <= breakpoints[3]) return { idx: 3, cat: "Poor" };
-    if (val <= breakpoints[4]) return { idx: 4, cat: "Very Poor" };
-    return { idx: 5, cat: "Severe" };
+  // NO2 Thresholds
+  // Low: < 40
+  // Moderate: 40 - 80
+  // High: 80 - 180
+  // Very High: 180 - 280
+  // Severe: > 280
+
+  // --- Risk Factor Descriptions ---
+  const riskFactors = {
+    O3: {
+      High: "Respiratory irritation likely in sensitive groups.",
+      VeryHigh: "Lung function reduction predicted; asthma triggers active.",
+      Severe: "General population at risk of respiratory distress.",
+    },
+    NO2: {
+      High: "Inflammation of airways; reduced lung function.",
+      VeryHigh: "Increased susceptibility to respiratory infections.",
+      Severe: "Severe aggravation of heart/lung diseases.",
+    },
+    Synergistic: "Combined toxic effect: Immediate health warning required.",
   };
 
-  const no2Status = getSubIndex(no2, [40, 80, 180, 280, 400]);
-  const o3Status = getSubIndex(o3, [50, 100, 168, 208, 748]);
+  // Helper to determine level
+  const getLevel = (val: number, type: "O3" | "NO2") => {
+    if (type === "O3") {
+      if (val < 100) return { level: "Low", score: 1 };
+      if (val < 160) return { level: "Moderate", score: 2 };
+      if (val < 200) return { level: "High", score: 3 };
+      if (val < 300) return { level: "Very High", score: 4 };
+      return { level: "Severe", score: 5 };
+    } else {
+      // NO2
+      if (val < 40) return { level: "Low", score: 1 };
+      if (val < 80) return { level: "Moderate", score: 2 };
+      if (val < 180) return { level: "High", score: 3 };
+      if (val < 280) return { level: "Very High", score: 4 };
+      return { level: "Severe", score: 5 };
+    }
+  };
 
-  // Determine dominant pollutant
-  let dominant = "NO2";
-  let maxIdx = no2Status.idx;
-  let category = no2Status.cat;
+  const o3Status = getLevel(o3, "O3");
+  const no2Status = getLevel(no2, "NO2");
 
-  if (o3Status.idx > maxIdx) {
-    dominant = "O3";
-    maxIdx = o3Status.idx;
-    category = o3Status.cat;
-  } else if (o3Status.idx === maxIdx) {
-    // Tie-breaking or just pick one. Let's say O3 is more critical if equal index?
-    // Or just keep NO2.
-    if (o3 > no2) dominant = "O3"; // Very rough tie break
+  // --- Synergistic Effect Rule ---
+  // If O3 > 160 (High+) AND NO2 > 100 (High+), Risk is SEVERE
+  let isSynergistic = false;
+  if (o3 > 160 && no2 > 100) {
+    isSynergistic = true;
   }
 
-  // Map to Low/High/Severe as requested
-  // Low: Good, Satisfactory
-  // High: Moderate, Poor
-  // Severe: Very Poor, Severe
-  let simplifiedCategory = "Low";
-  if (maxIdx >= 4) simplifiedCategory = "Severe";
-  else if (maxIdx >= 2) simplifiedCategory = "High";
+  // Determine Dominant Pollutant & Final Category
+  let finalLevel = "Low";
+  let dominant = "NO2";
+  let activeRiskFactors: string[] = [];
+
+  // Compare scores (1-5)
+  if (isSynergistic) {
+    finalLevel = "Severe";
+    dominant = "Combined (O3 + NO2)";
+    activeRiskFactors.push(riskFactors.Synergistic);
+    // Add specific risks too
+    activeRiskFactors.push(riskFactors.O3.Severe); // Assume worst case for synergistic
+    activeRiskFactors.push(riskFactors.NO2.Severe);
+  } else {
+    // Standard Max-Operator Logic
+    if (o3Status.score > no2Status.score) {
+      finalLevel = o3Status.level;
+      dominant = "O3";
+    } else if (no2Status.score > o3Status.score) {
+      finalLevel = no2Status.level;
+      dominant = "NO2";
+    } else {
+      // Tie
+      finalLevel = o3Status.level;
+      dominant = "O3 & NO2";
+    }
+
+    // Collect Risk Factors based on individual levels
+    if (o3Status.score >= 3) {
+      // High or above
+      if (o3Status.score === 3) activeRiskFactors.push(riskFactors.O3.High);
+      if (o3Status.score === 4) activeRiskFactors.push(riskFactors.O3.VeryHigh);
+      if (o3Status.score === 5) activeRiskFactors.push(riskFactors.O3.Severe);
+    }
+    if (no2Status.score >= 3) {
+      if (no2Status.score === 3) activeRiskFactors.push(riskFactors.NO2.High);
+      if (no2Status.score === 4)
+        activeRiskFactors.push(riskFactors.NO2.VeryHigh);
+      if (no2Status.score === 5) activeRiskFactors.push(riskFactors.NO2.Severe);
+    }
+  }
+
+  // If no specific high risks, add a generic safe message
+  if (activeRiskFactors.length === 0) {
+    activeRiskFactors.push("Air quality is within safe limits.");
+  }
 
   return {
-    score: Math.max(no2, o3), // Raw max concentration as a simple score, or we could calculate actual AQI
-    category: simplifiedCategory, // Low, High, Severe
-    fullCategory: category, // Good, Satisfactory, etc.
+    score: Math.max(o3, no2), // Keep raw max for sorting if needed
+    category: finalLevel, // Low, Moderate, High, Very High, Severe
     dominantPollutant: dominant,
+    riskFactors: activeRiskFactors,
+    isSynergistic: isSynergistic,
     details: {
-      NO2: { val: no2, cat: no2Status.cat },
-      O3: { val: o3, cat: o3Status.cat },
+      NO2: { val: no2, level: no2Status.level },
+      O3: { val: o3, level: o3Status.level },
     },
   };
 }

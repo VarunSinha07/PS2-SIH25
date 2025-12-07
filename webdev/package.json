@@ -31,6 +31,7 @@
     "csv-parse": "^6.1.0",
     "dotenv": "^17.2.3",
     "elysia": "^1.4.17",
+    "framer-motion": "^12.23.25",
     "ioredis": "^5.8.2",
     "lucide-react": "^0.556.0",
     "next": "16.0.6",

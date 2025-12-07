@@ -211,8 +211,24 @@ class TemporalLSTM(nn.Module):
         return preds.view(-1, self.horizon, self.target_dim)
 
 
+# --- OpenTelemetry Instrumentation ---
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.sdk.resources import Resource as OTelResource
+
+resource = OTelResource(attributes={"service.name": "sih-ml"})
+provider = TracerProvider(resource=resource)
+# OTel Collector is at http://otel-collector:4318/v1/traces inside docker network
+processor = BatchSpanProcessor(OTLPSpanExporter(endpoint="http://otel-collector:4318/v1/traces"))
+provider.add_span_processor(processor)
+trace.set_tracer_provider(provider)
+
 # --- FastAPI App ---
 app = FastAPI()
+FastAPIInstrumentor.instrument_app(app)
 
 
 # --- Load Models and Scalers ---

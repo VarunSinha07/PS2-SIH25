@@ -25,8 +25,9 @@ import uvicorn
 # --- Configuration ---
 warnings.filterwarnings("ignore")
 BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / 'Data_SIH_2025 2'
 ARTIFACT_DIR = BASE_DIR / "artifacts/FINAL_PRODUCTION_MODELS"
-ERA5_DATA_PATH = BASE_DIR / "era5_station_timeseries.csv"
+ERA5_DATA_PATH = DATA_DIR / "era5_station_timeseries.csv"
 
 # Logging
 logging.basicConfig(level=logging.INFO)

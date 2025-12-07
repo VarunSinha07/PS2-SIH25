@@ -1,0 +1,34 @@
+server:
+  http_listen_port: 3200
+
+distributor:
+  receivers:                           # this configuration will listen on all ports and protocols that tempo is capable of.
+    otlp:
+      protocols:
+        http:
+        grpc:
+
+ingester:
+  trace_idle_period: 10s               # the length of time after a trace has not received spans to consider it complete and flush it
+  max_block_bytes: 1_000_000           # cut the head block when it hits this size or ...
+  max_block_duration: 5m               #   ... when this much time passes
+
+compactor:
+  compaction:
+    compaction_window: 1h              # blocks in this time window will be compacted together
+    max_block_bytes: 100_000_000       # maximum size of compacted blocks
+    block_retention: 1h
+    compacted_block_retention: 10m
+
+storage:
+  trace:
+    backend: local                     # backend configuration to use
+    wal:
+      path: /tmp/tempo/wal             # where to store the wal locally
+    local:
+      path: /tmp/tempo/blocks          # where to store the blocks locally
+
+overrides:
+  defaults:
+    metrics_generator:
+      processors: [service-graphs, span-metrics] # enables service graphs and span metrics

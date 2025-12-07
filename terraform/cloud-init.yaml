@@ -1,0 +1,42 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  - git
+  - curl
+  - apt-transport-https
+  - ca-certificates
+  - gnupg
+  - lsb-release
+
+write_files:
+  - path: /etc/sysctl.d/90-max-map-count.conf
+    content: |
+      vm.max_map_count=262144
+
+runcmd:
+  # Apply sysctl changes immediately
+  - sysctl -w vm.max_map_count=262144
+
+  # Install Docker
+  - curl -fsSL https://get.docker.com -o get-docker.sh
+  - sh get-docker.sh
+  - usermod -aG docker ubuntu
+
+  # Install Docker Compose
+  - curl -L "https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+  - chmod +x /usr/local/bin/docker-compose
+
+  # Clone Repository (Assuming public or using token)
+  # Replace with actual repo URL. If private, need to inject key or token.
+  # For SIH, usually we zip and scp, but git pull is easier if public/token.
+  - mkdir -p /app
+  - git clone https://github.com/shreyanshjain05/PS2-SIH25.git /app/PS2-SIH25
+
+  # Setup .env if needed (Assuming .env is not in repo, creates placeholder)
+  - touch /app/PS2-SIH25/webdev/.env
+
+  # Start Application
+  - cd /app/PS2-SIH25
+  - docker compose up -d

@@ -29,7 +29,9 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Set Env vars for build time
+# Set Env vars for build time
 ENV NEXT_TELEMETRY_DISABLED 1
+ENV BETTER_AUTH_SECRET="build_time_secret_placeholder"
 # Note: Database URLs are NOT needed for build unless specific pages compel it (we fixed that with static/dynamic config)
 # But if Next.js tries to connect during build, it might be an issue. 
 # We assume 'bun runs build' works without DB if pages are properly dynamic or static.

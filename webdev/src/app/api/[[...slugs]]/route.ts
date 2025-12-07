@@ -5,9 +5,82 @@ import { citizenService } from "@/services/citizen";
 import { businessService } from "@/services/business";
 import { govService } from "@/services/gov";
 import { prismaAuth } from "@/lib/db/auth";
+import { logger } from "@/lib/logger";
 
 // ML Service URL - use env var to support both local and Docker
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:8000';
+
+
+const aqiService = new Elysia({ prefix: '/aqi' })
+    .onBeforeHandle(async (context: any) => {
+        const { request, user, set } = context;
+        if (!user) {
+            set.status = 401;
+            return { error: "Unauthorized" };
+        }
+        try {
+           const authHeader = request.headers.get("Authorization");
+           const consume = await businessService.handle(new Request("http://localhost/business/credits/consume", {
+               method: "POST",
+               headers: { "Content-Type": "application/json" },
+               body: JSON.stringify({ userId: user.id, count: 100, resource: new URL(request.url).pathname })
+           }));
+           
+           const result = await consume.json();
+           if (!result.success) {
+               set.status = 402; // Payment Required
+               return { error: result.error || "Insufficient Credits" };
+           }
+        } catch (err) {
+            console.error("Credit Deduction Failed:", err);
+            set.status = 500;
+            return { error: "Internal Server Error during Credit Check" };
+        }
+    })
+    .get('/sites', async () => {
+      try {
+        const res = await fetch(`${ML_SERVICE_URL}/sites/`);
+        if (!res.ok) throw new Error('Failed to fetch sites');
+        return await res.json();
+      } catch (error) {
+        return { error: 'Failed to connect to AQI server' };
+      }
+    })
+    .post('/predict', async ({ body }: { body: any }) => {
+      try {
+        const res = await fetch(`${ML_SERVICE_URL}/predict/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        return await res.json();
+      } catch (error) {
+        return { error: 'Prediction failed' };
+      }
+    }, {
+      body: t.Object({
+        site_id: t.String(),
+        data: t.Array(t.Any())
+      })
+    })
+    .post('/forecast/timeseries', async ({ body }: { body: any }) => {
+      try {
+        const res = await fetch(`${ML_SERVICE_URL}/forecast/timeseries/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        return await res.json();
+      } catch (error) {
+        return { error: 'Forecast failed' };
+      }
+    }, {
+      body: t.Object({
+        site_id: t.String(),
+        data: t.Array(t.Any()),
+        historical_points: t.Optional(t.Number())
+      })
+    });
 
 
 const app = new Elysia({ prefix: "/api" })
@@ -17,11 +90,28 @@ const app = new Elysia({ prefix: "/api" })
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       origin: true // Allow all for dev
   }))
+  .onRequest(({ request }) => {
+    logger.info('API Request Started', { 
+        type: 'api_request',
+        method: request.method, 
+        url: request.url,
+        agent: request.headers.get('user-agent')
+    });
+  })
+  // @ts-ignore - Using onAfterHandle as onResponse caused runtime issues in build
+  .onAfterHandle(({ request, set }) => {
+     logger.info('API Handled', { 
+        type: 'api_response',
+        method: request.method, 
+        url: request.url,
+        status: set.status
+    });
+  })
 
 // ... (previous code)
 
   // Global Auth Middleware (Gateway Layer)
-  .derive(async ({ request, set }) => {
+  .derive(async ({ request }: { request: Request }) => {
     // 1. Try Session Auth (Browser)
     const session = await auth.api.getSession({
         headers: request.headers,
@@ -159,6 +249,7 @@ const app = new Elysia({ prefix: "/api" })
       })
     })
   );
+  .use(aqiService);
 
 export const GET = app.handle;
 export const POST = app.handle;

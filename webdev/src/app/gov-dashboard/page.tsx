@@ -35,6 +35,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MONITORING_SITES, getSiteName } from "@/lib/sites";
 import { calculatePollutionScore } from "@/lib/aqi-utils";
 
+// Force dynamic rendering to prevent build-time database access
+export const dynamic = 'force-dynamic';
+
 // Mock data generator for critical regions if DB is empty
 const getCriticalRegions = (reports: any[]) => {
   if (reports.length > 0) {

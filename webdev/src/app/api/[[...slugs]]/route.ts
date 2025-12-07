@@ -6,6 +6,10 @@ import { businessService } from "@/services/business";
 import { govService } from "@/services/gov";
 import { prismaAuth } from "@/lib/db/auth";
 
+// ML Service URL - use env var to support both local and Docker
+const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:8000';
+
+
 const app = new Elysia({ prefix: "/api" })
   .use(cors({
       credentials: true,

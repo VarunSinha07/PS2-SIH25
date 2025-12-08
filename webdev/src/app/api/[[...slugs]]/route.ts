@@ -68,7 +68,11 @@ const aqiService = new Elysia({ prefix: '/aqi' })
         // Load test payload from file
         const fs = await import('fs/promises');
         const path = await import('path');
-        const testPayloadPath = path.join(process.cwd(), '..', 'ML', 'test_payload_2024.json');
+        // In production (Docker), file is in /app/test_payload_2024.json
+        // In development, file is in ../ML/test_payload_2024.json
+        const testPayloadPath = process.env.NODE_ENV === 'production' 
+          ? path.join(process.cwd(), 'test_payload_2024.json')
+          : path.join(process.cwd(), '..', 'ML', 'test_payload_2024.json');
         const testPayloadContent = await fs.readFile(testPayloadPath, 'utf-8');
         const testPayload = JSON.parse(testPayloadContent);
         

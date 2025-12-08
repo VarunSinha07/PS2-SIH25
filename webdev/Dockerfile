@@ -62,6 +62,9 @@ COPY --from=builder /app/src ./src
 # Copy any other config files needed for runtime
 COPY --from=builder /app/next.config.ts ./
 
+# Copy test payload for ML predictions
+COPY --from=builder /app/test_payload_2024.json ./test_payload_2024.json
+
 # Helper script for migrations
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh

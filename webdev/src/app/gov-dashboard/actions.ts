@@ -9,8 +9,15 @@ export async function sendAlert(formData: FormData) {
   const message = formData.get("message") as string;
   const severity = formData.get("severity") as string;
 
+  // New fields
+  const category = formData.get("category") as string;
+  const pollutant = formData.get("pollutant") as string;
+  const riskFactorsStr = formData.get("riskFactors") as string;
+  const forecast = formData.get("forecast") as string;
+  const regionName = formData.get("regionName") as string;
+
   // Handle multiple recipients
-  const recipients = formData.getAll("recipient");
+  const recipients = formData.getAll("recipient") as string[];
   const recipient = recipients.length > 0 ? recipients.join(", ") : "";
 
   const region = formData.get("region") as string;
@@ -36,6 +43,12 @@ export async function sendAlert(formData: FormData) {
     title,
     message,
     recipient,
+    recipients,
+    category,
+    pollutant,
+    riskFactors: riskFactorsStr ? JSON.parse(riskFactorsStr) : [],
+    forecast,
+    regionName,
   });
 
   revalidatePath("/gov-dashboard");

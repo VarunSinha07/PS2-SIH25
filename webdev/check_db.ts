@@ -1,4 +1,3 @@
-
 import { prismaAuth } from "./src/lib/db/auth";
 import { prismaCitizen } from "./src/lib/db/citizen";
 import { prismaBusiness } from "./src/lib/db/business";
@@ -23,7 +22,7 @@ async function main() {
 }
 
 main()
-  .catch(e => {
+  .catch((e) => {
     console.error(e);
     process.exit(1);
   })

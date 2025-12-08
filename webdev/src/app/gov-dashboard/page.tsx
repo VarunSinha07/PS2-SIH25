@@ -78,6 +78,22 @@ const getCriticalRegions = (reports: any[]) => {
       recordedAt: new Date(),
       forecast: "Rising", // Synergistic Case
     },
+    {
+      id: "mock-5",
+      region: "site_7", 
+      o3: 120, // Satisfactory -> Low
+      no2: 170, // Satisfactory -> Low
+      recordedAt: new Date(),
+      forecast: "Falling",
+    },
+    {
+      id: "mock-6",
+      region: "site_3", 
+      o3: 400, // Satisfactory -> Low
+      no2: 200, // Satisfactory -> Low
+      recordedAt: new Date(),
+      forecast: "Falling",
+    },
   ];
 
   return mockData
@@ -112,6 +128,9 @@ export default async function GovDashboard() {
     where: {
       createdAt: {
         gte: twelveHoursAgo,
+      },
+      status: {
+        not: "FAILED",
       },
     },
   });
@@ -368,6 +387,31 @@ export default async function GovDashboard() {
                         type="hidden"
                         name="title"
                         value={`${region.category} Pollution Alert: ${regionName}`}
+                      />
+                      <input
+                        type="hidden"
+                        name="category"
+                        value={region.category}
+                      />
+                      <input
+                        type="hidden"
+                        name="pollutant"
+                        value={region.pollutant}
+                      />
+                      <input
+                        type="hidden"
+                        name="riskFactors"
+                        value={JSON.stringify(region.riskFactors)}
+                      />
+                      <input
+                        type="hidden"
+                        name="forecast"
+                        value={region.forecast}
+                      />
+                      <input
+                        type="hidden"
+                        name="regionName"
+                        value={regionName}
                       />
                       <input
                         type="hidden"

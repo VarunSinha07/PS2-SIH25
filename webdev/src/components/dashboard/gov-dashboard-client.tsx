@@ -94,10 +94,11 @@ export default function GovDashboardClient({
       else if (lastScore < firstScore) trend = "Falling";
     }
 
-    // If worst case is High, Very High, or Severe, add to critical regions
+    // If worst case is Moderate, High, Very High, or Severe, add to critical regions
     if (
       worstCase &&
-      (worstCase.category === "High" ||
+      (worstCase.category === "Moderate" ||
+        worstCase.category === "High" ||
         worstCase.category === "Very High" ||
         worstCase.category === "Severe")
     ) {
@@ -282,6 +283,8 @@ export default function GovDashboardClient({
                       ? "border-l-gray-400 bg-gray-50"
                       : region.category === "Severe"
                       ? "border-l-purple-600 bg-red-50"
+                      : region.category === "Moderate"
+                      ? "border-l-yellow-500 bg-yellow-50"
                       : "border-l-red-500"
                   }`}
                 >
@@ -299,6 +302,8 @@ export default function GovDashboardClient({
                             className={`h-5 w-5 ${
                               region.category === "Severe"
                                 ? "text-purple-600"
+                                : region.category === "Moderate"
+                                ? "text-yellow-500"
                                 : "text-red-500"
                             }`}
                           />
@@ -309,7 +314,11 @@ export default function GovDashboardClient({
                         <Badge
                           variant={isAlertSent ? "secondary" : "destructive"}
                           className={`text-sm ${
-                            region.category === "Severe" ? "bg-purple-600" : ""
+                            region.category === "Severe"
+                              ? "bg-purple-600"
+                              : region.category === "Moderate"
+                              ? "bg-yellow-500 text-black hover:bg-yellow-600"
+                              : ""
                           }`}
                         >
                           {region.category} Risk
@@ -413,7 +422,11 @@ Immediate action required.`}
                         type="hidden"
                         name="severity"
                         value={
-                          region.category === "Severe" ? "CRITICAL" : "HIGH"
+                          region.category === "Severe"
+                            ? "CRITICAL"
+                            : region.category === "Moderate"
+                            ? "MEDIUM"
+                            : "HIGH"
                         }
                       />
                       <input

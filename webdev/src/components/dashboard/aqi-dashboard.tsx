@@ -195,6 +195,119 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
     }
   };
 
+  const simulateForecast = () => {
+    if (!selectedSite) return;
+    setLoading(true);
+
+    // Simulate network delay
+    setTimeout(() => {
+      // Generate 72 historical points
+      const historical_timestamps = Array.from({ length: 72 }, (_, i) => i);
+      const historical_O3_target = Array.from(
+        { length: 72 },
+        () => 40 + Math.random() * 20
+      );
+      const historical_NO2_target = Array.from(
+        { length: 72 },
+        () => 20 + Math.random() * 15
+      );
+
+      // Generate 48 forecast points with some "Moderate" values
+      const forecast_timestamps = Array.from({ length: 48 }, (_, i) => 72 + i);
+
+      // Create a spike in pollution for testing alerts
+      const forecast_O3_target = Array.from({ length: 48 }, (_, i) => {
+        // Spike around hour 10-15 of forecast
+        if (i > 10 && i < 15) return 110 + Math.random() * 10; // Moderate O3 (>100)
+        return 50 + Math.random() * 20;
+      });
+
+      const forecast_NO2_target = Array.from({ length: 48 }, (_, i) => {
+        // Spike around hour 20-25
+        if (i > 20 && i < 25) return 50 + Math.random() * 10; // Moderate NO2 (>40)
+        return 25 + Math.random() * 10;
+      });
+
+      const response: AqiData = {
+        historical_timestamps,
+        forecast_timestamps,
+        historical_O3_target,
+        historical_NO2_target,
+        forecast_O3_target,
+        forecast_NO2_target,
+        metadata: { row_count: 120 },
+        errors: {
+          O3_absolute_error: [],
+          NO2_absolute_error: [],
+        },
+      };
+
+      if (onForecastUpdate) {
+        onForecastUpdate(response, selectedSite);
+      }
+
+      const mergedData: any[] = [];
+
+      // Handle historical data
+      if (
+        response.historical_timestamps &&
+        Array.isArray(response.historical_timestamps)
+      ) {
+        const histLength = Math.min(
+          response.historical_timestamps.length,
+          response.historical_O3_target?.length || 0,
+          response.historical_NO2_target?.length || 0
+        );
+
+        for (let i = 0; i < histLength; i++) {
+          const ts = response.historical_timestamps[i];
+
+          mergedData.push({
+            timestamp: `Hour ${ts}`,
+            rawTimestamp: ts,
+            type: "Historical",
+            O3: response.historical_O3_target[i],
+            NO2: response.historical_NO2_target[i],
+            O3_Forecast: response.historical_O3_target[i],
+            NO2_Forecast: response.historical_NO2_target[i],
+            isForecast: false,
+          });
+        }
+      }
+
+      // Handle forecast data
+      if (
+        response.forecast_timestamps &&
+        Array.isArray(response.forecast_timestamps)
+      ) {
+        const forecastLength = Math.min(
+          response.forecast_timestamps.length,
+          response.forecast_O3_target?.length || 0,
+          response.forecast_NO2_target?.length || 0
+        );
+
+        // Set max forecast hours
+        setMaxForecastHours(forecastLength);
+
+        for (let i = 0; i < forecastLength; i++) {
+          const ts = response.forecast_timestamps[i];
+
+          mergedData.push({
+            timestamp: `Hour ${ts}`,
+            rawTimestamp: ts,
+            type: "Forecast",
+            O3_Forecast: response.forecast_O3_target[i],
+            NO2_Forecast: response.forecast_NO2_target[i],
+            isForecast: true,
+          });
+        }
+      }
+
+      setChartData(mergedData);
+      setLoading(false);
+    }, 1000);
+  };
+
   const historicalData = useMemo(() => {
     return chartData.filter((d) => !d.isForecast);
   }, [chartData]);
@@ -287,6 +400,19 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
               <RefreshCw className="w-4 h-4 mr-2" />
             )}
             {loading ? "Running..." : "Forecast"}
+          </Button>
+          <Button
+            onClick={simulateForecast}
+            disabled={loading || !selectedSite}
+            variant="outline"
+            className="border-teal-600 text-teal-600 hover:bg-teal-50 font-semibold px-6 py-2.5 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 text-sm"
+          >
+            {loading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Activity className="w-4 h-4 mr-2" />
+            )}
+            Simulate
           </Button>
         </div>
       </div>

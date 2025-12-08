@@ -22,7 +22,11 @@ export const auth = betterAuth({
             apikey: {
                 modelName: "ApiKey"
             }
-        }
+        },
+        // Disable rate limiting - we use our own credit system
+        rateLimit: {
+          enabled: false,
+        },
     })
   ],
   user: {

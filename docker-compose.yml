@@ -125,6 +125,8 @@ services:
     container_name: sih-web
     ports:
       - "3000:3000"
+    env_file:
+      - ./webdev/.env
     environment:
       - DATABASE_URL_AUTH=postgresql://postgres:password@db:5432/sih_auth
       - DATABASE_URL_CITIZEN=postgresql://postgres:password@db:5432/sih_citizen
@@ -134,11 +136,6 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - NEXT_PUBLIC_BASE_URL=http://localhost:3000
-      # Pass through other env vars as needed, or use .env file
-      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID}
-      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET}
-      - NEXT_PUBLIC_RAZORPAY_KEY_ID=${NEXT_PUBLIC_RAZORPAY_KEY_ID}
-      - BETTER_AUTH_SECRET=SnNbH5dl2O5mdVjHmAEEkrSzH1qilBK9
       - BETTER_AUTH_SECRET=SnNbH5dl2O5mdVjHmAEEkrSzH1qilBK9
       - BETTER_AUTH_URL=http://localhost:3000
       - ML_DATA_PATH=/app/ml_data

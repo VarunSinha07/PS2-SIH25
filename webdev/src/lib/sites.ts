@@ -60,11 +60,14 @@ export const MONITORING_SITES: MonitoringSite[] = [
 ];
 
 export function getSiteName(siteId: string): string {
-  const site = MONITORING_SITES.find((s) => s.id === siteId);
+  // Handle both "site_1" and "1" formats
+  const normalizedId = siteId.startsWith("site_") ? siteId : `site_${siteId}`;
+  const site = MONITORING_SITES.find((s) => s.id === normalizedId);
   return site ? site.name : siteId; // Fallback to ID if not found
 }
 
 export function getSiteCoordinates(siteId: string) {
-  const site = MONITORING_SITES.find((s) => s.id === siteId);
+  const normalizedId = siteId.startsWith("site_") ? siteId : `site_${siteId}`;
+  const site = MONITORING_SITES.find((s) => s.id === normalizedId);
   return site ? { lat: site.lat, lon: site.lon } : null;
 }

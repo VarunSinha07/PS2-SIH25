@@ -407,19 +407,6 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
             )}
             {loading ? "Running..." : "Forecast"}
           </Button>
-          <Button
-            onClick={simulateForecast}
-            disabled={loading || !selectedSite}
-            variant="outline"
-            className="border-teal-600 text-teal-600 hover:bg-teal-50 font-semibold px-6 py-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 text-base"
-          >
-            {loading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Activity className="w-4 h-4 mr-2" />
-            )}
-            Simulate
-          </Button>
         </div>
       </div>
 

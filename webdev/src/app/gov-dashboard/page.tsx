@@ -80,7 +80,7 @@ const getCriticalRegions = (reports: any[]) => {
     },
     {
       id: "mock-5",
-      region: "site_7", 
+      region: "site_7",
       o3: 120, // Satisfactory -> Low
       no2: 170, // Satisfactory -> Low
       recordedAt: new Date(),
@@ -88,7 +88,7 @@ const getCriticalRegions = (reports: any[]) => {
     },
     {
       id: "mock-6",
-      region: "site_3", 
+      region: "site_3",
       o3: 400, // Satisfactory -> Low
       no2: 200, // Satisfactory -> Low
       recordedAt: new Date(),

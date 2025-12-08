@@ -12,6 +12,10 @@ export const auth = betterAuth({
   emailAndPassword: {  
     enabled: true,
   },
+  trustedOrigins: [
+      "http://localhost:3000",
+      "http://52.172.175.100:3000"
+  ],
   plugins: [
     apiKey({
         schema: {

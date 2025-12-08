@@ -41,6 +41,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
+import { getSiteName } from "@/lib/sites";
 
 export interface AqiData {
   historical_timestamps: number[];
@@ -145,8 +146,9 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
             const ts = response.historical_timestamps[i];
 
             mergedData.push({
-              timestamp: `Hour ${ts}`,
-              rawTimestamp: ts,
+              timestamp: `Hour ${i}`,
+              rawTimestamp: i, // Use index for X-axis (0h, 1h, 2h...)
+              originalTimestamp: ts, // Keep original for tooltip
               type: "Historical",
               O3: response.historical_O3_target[i],
               NO2: response.historical_NO2_target[i],
@@ -171,12 +173,17 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
           // Set max forecast hours
           setMaxForecastHours(forecastLength);
 
+          // Get the last historical hour index to continue from
+          const startHour = mergedData.length;
+          
           for (let i = 0; i < forecastLength; i++) {
             const ts = response.forecast_timestamps[i];
+            const hourIndex = startHour + i;
 
             mergedData.push({
-              timestamp: `Hour ${ts}`,
-              rawTimestamp: ts,
+              timestamp: `Hour ${hourIndex}`,
+              rawTimestamp: hourIndex, // Use index for X-axis (72h, 73h, 74h...)
+              originalTimestamp: ts, // Keep original for tooltip
               type: "Forecast",
               O3_Forecast: response.forecast_O3_target[i],
               NO2_Forecast: response.forecast_NO2_target[i],
@@ -319,9 +326,8 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
   }, [chartData, forecastLimit]);
 
   const combinedData = useMemo(() => {
-    // Combine last few historical points with forecast for smooth transition
-    const lastHistorical = historicalData.slice(-24);
-    return [...lastHistorical, ...forecastData];
+    // Combine all historical data with forecast data
+    return [...historicalData, ...forecastData];
   }, [historicalData, forecastData]);
 
   const stats = useMemo(() => {
@@ -365,7 +371,7 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h2 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Air Quality Forecast
           </h2>
           <p className="text-muted-foreground mt-1">
@@ -377,13 +383,13 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
           <div className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-lg border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300">
             <MapPin className="w-4 h-4 text-teal-600" />
             <Select value={selectedSite} onValueChange={setSelectedSite}>
-              <SelectTrigger className="border-0 text-slate-700 font-semibold text-sm h-auto p-0">
+              <SelectTrigger className="border-0 text-slate-700 font-semibold text-base h-auto p-0">
                 <SelectValue placeholder="Choose location" />
               </SelectTrigger>
               <SelectContent>
                 {Object.keys(sites).map((site) => (
                   <SelectItem key={site} value={site}>
-                    {site}
+                    {getSiteName(site)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -392,7 +398,7 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
           <Button
             onClick={runForecast}
             disabled={loading || !selectedSite}
-            className="bg-linear-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white font-semibold px-6 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 text-sm"
+            className="bg-linear-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 text-base"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -405,7 +411,7 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
             onClick={simulateForecast}
             disabled={loading || !selectedSite}
             variant="outline"
-            className="border-teal-600 text-teal-600 hover:bg-teal-50 font-semibold px-6 py-2.5 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 text-sm"
+            className="border-teal-600 text-teal-600 hover:bg-teal-50 font-semibold px-6 py-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 text-base"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -421,16 +427,16 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="border-blue-200 dark:border-blue-900">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <CardTitle className="text-base font-medium text-muted-foreground flex items-center gap-2">
                 <Wind className="w-4 h-4 text-blue-500" />
                 O3 Average
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-3xl font-bold text-blue-600">
                 {stats.o3.avg.toFixed(1)}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">µg/m³</p>
+              <p className="text-sm text-muted-foreground mt-1">µg/m³</p>
             </CardContent>
           </Card>
 
@@ -442,7 +448,7 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-3xl font-bold">
                 {stats.o3.min.toFixed(1)} - {stats.o3.max.toFixed(1)}
               </div>
               <p className="text-xs text-muted-foreground mt-1">µg/m³</p>
@@ -457,7 +463,7 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-600">
+              <div className="text-3xl font-bold text-purple-600">
                 {stats.no2.avg.toFixed(1)}
               </div>
               <p className="text-xs text-muted-foreground mt-1">µg/m³</p>
@@ -472,7 +478,7 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-3xl font-bold">
                 {stats.no2.min.toFixed(1)} - {stats.no2.max.toFixed(1)}
               </div>
               <p className="text-xs text-muted-foreground mt-1">µg/m³</p>
@@ -510,7 +516,7 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
               {maxForecastHours}h
             </Badge>
           </div>
-          <p className="text-sm text-center mt-3 text-muted-foreground">
+          <p className="text-base text-center mt-3 text-muted-foreground">
             Showing {forecastData.length} of {maxForecastHours} forecast hours
           </p>
         </CardContent>
@@ -591,12 +597,12 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
                   />
                   <XAxis
                     dataKey="rawTimestamp"
-                    tickFormatter={(val) => `H${val}`}
+                    tickFormatter={(val) => `${val}h`}
                     tick={{ fontSize: 11 }}
                     stroke="hsl(var(--muted-foreground))"
                   />
                   <YAxis
-                    className="text-xs"
+                    className="text-sm"
                     stroke="hsl(var(--muted-foreground))"
                     label={{
                       value: "µg/m³",
@@ -732,12 +738,12 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
                   />
                   <XAxis
                     dataKey="rawTimestamp"
-                    tickFormatter={(val) => `H${val}`}
+                    tickFormatter={(val) => `${val}h`}
                     tick={{ fontSize: 11 }}
                     stroke="hsl(var(--muted-foreground))"
                   />
                   <YAxis
-                    className="text-xs"
+                    className="text-sm"
                     stroke="hsl(var(--muted-foreground))"
                     label={{
                       value: "µg/m³",
@@ -819,15 +825,15 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
                 <div className="flex items-center gap-3">
                   <CalendarClock className="w-5 h-5 text-primary" />
                   <div>
-                    <p className="text-sm text-muted-foreground">Time Point</p>
-                    <p className="font-semibold text-lg">
+                    <p className="text-base text-muted-foreground">Time Point</p>
+                    <p className="font-semibold text-xl">
                       {hoveredData.timestamp}
                     </p>
                   </div>
                 </div>
                 <Badge
                   variant={hoveredData.isForecast ? "default" : "secondary"}
-                  className="text-sm px-3 py-1"
+                  className="text-base px-4 py-2"
                 >
                   {hoveredData.type}
                 </Badge>
@@ -841,21 +847,21 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
                     <div className="relative">
                       <div className="flex items-center gap-2 mb-3">
                         <Wind className="w-5 h-5 text-blue-600" />
-                        <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                        <p className="text-base font-medium text-blue-900 dark:text-blue-100">
                           Ozone (O3)
                         </p>
                         {hoveredData.isForecast && (
-                          <Badge variant="outline" className="text-xs ml-auto">
+                          <Badge variant="outline" className="text-sm ml-auto">
                             Predicted
                           </Badge>
                         )}
                       </div>
-                      <p className="text-4xl font-bold text-blue-600 mb-1">
+                      <p className="text-5xl font-bold text-blue-600 mb-1">
                         {(hoveredData.O3_Forecast ?? hoveredData.O3)?.toFixed(
                           2
                         )}
                       </p>
-                      <p className="text-sm text-muted-foreground">µg/m³</p>
+                      <p className="text-base text-muted-foreground">µg/m³</p>
                     </div>
                   </div>
                 )}
@@ -870,17 +876,17 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
                           Nitrogen Dioxide (NO2)
                         </p>
                         {hoveredData.isForecast && (
-                          <Badge variant="outline" className="text-xs ml-auto">
+                          <Badge variant="outline" className="text-sm ml-auto">
                             Predicted
                           </Badge>
                         )}
                       </div>
-                      <p className="text-4xl font-bold text-purple-600 mb-1">
+                      <p className="text-5xl font-bold text-purple-600 mb-1">
                         {(hoveredData.NO2_Forecast ?? hoveredData.NO2)?.toFixed(
                           2
                         )}
                       </p>
-                      <p className="text-sm text-muted-foreground">µg/m³</p>
+                      <p className="text-base text-muted-foreground">µg/m³</p>
                     </div>
                   </div>
                 )}
@@ -889,8 +895,8 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
           ) : (
             <div className="h-[180px] flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed rounded-xl bg-muted/5 hover:bg-muted/10 transition-colors">
               <Activity className="w-12 h-12 mb-3 opacity-50" />
-              <p className="text-sm font-medium">Interactive Mode Active</p>
-              <p className="text-xs mt-1">
+              <p className="text-base font-medium">Interactive Mode Active</p>
+              <p className="text-sm mt-1">
                 Click or hover over the time series charts to explore data
                 points
               </p>

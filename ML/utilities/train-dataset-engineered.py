@@ -5,9 +5,7 @@ from math import radians, sin, cos, sqrt, atan2
 
 # Directories and paths
 BASE_DIR = Path(__file__).resolve().parent 
-DATA_DIR = BASE_DIR.parent / "Data_SIH_2025 2"
-ARTIFACT_DIR = Path("artifacts/xgb_models-2.0")
-ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
+DATA_DIR = BASE_DIR.parent / "Data_SIH_2025_with_blh"
 coords_path = DATA_DIR / "lat_lon_sites.txt"
 
 # Load coordinates
@@ -181,7 +179,3 @@ data_clean.to_csv(output_path, index=False)
 
 print("Feature engineering completed!")
 print(f"Saved engineered dataset to: {output_path}")
-
-# Load and plot results
-df_1 = pd.read_csv('artifacts/xgb_models-2.0/train_dataset_engineered.csv')
-df_1.head()

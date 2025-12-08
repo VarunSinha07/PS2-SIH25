@@ -18,12 +18,17 @@ c = cdsapi.Client(
 
 
 variables = [
-    "boundary_layer_height",
     "total_cloud_cover",
     "surface_solar_radiation_downwards",
     "total_precipitation",
     "2m_temperature",
     "2m_dewpoint_temperature",
+    'surface_pressure',                      # For Stagnation/Trapping
+    'downward_uv_radiation_at_the_surface',  # For Photochemistry (O3 formation)
+    '100m_u_component_of_wind',              # For Urban Plume Transport
+    '100m_v_component_of_wind',              # For Urban Plume Transport
+    'leaf_area_index_high_vegetation',       # Sink/Deposition (Trees)
+    'leaf_area_index_low_vegetation',        # Sink/Deposition (Grass/Crops)
 ]
 
 # Delhi bounding box: [North, West, South, East]

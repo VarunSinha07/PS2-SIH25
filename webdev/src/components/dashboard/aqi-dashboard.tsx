@@ -113,7 +113,11 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
     "actual-forecast" | "historical-forecast"
   >("historical-forecast");
 
-  // Date selection state
+  // Date selection state - for selecting date BEFORE running forecast
+  const [forecastDate, setForecastDate] = useState<string>(
+    new Date().toISOString().split("T")[0] // Default to today
+  );
+  // View mode for displaying results
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"full" | "daily">("full");
 
@@ -608,7 +612,7 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col gap-4">
         <div>
           <h2 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Air Quality Forecast
@@ -618,48 +622,111 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
             context
           </p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap min-w-fit">
-          <div className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-lg border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300">
-            <MapPin className="w-4 h-4 text-teal-600" />
-            <Select value={selectedSite} onValueChange={setSelectedSite}>
-              <SelectTrigger className="border-0 text-slate-700 font-semibold text-base h-auto p-0">
-                <SelectValue placeholder="Choose location" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.keys(sites).map((site) => (
-                  <SelectItem key={site} value={site}>
-                    {getSiteName(site)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button
-            onClick={runForecast}
-            disabled={loading || !selectedSite}
-            className="bg-linear-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 text-base"
-          >
-            {loading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4 mr-2" />
+
+        {/* Step-by-step selection: 1. Date, 2. Site, 3. Forecast */}
+        <Card className="bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-950/20 dark:to-gray-950/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Run Forecast</CardTitle>
+            <CardDescription>
+              Select a date and location, then click Forecast to run the model
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+              {/* Step 1: Date Selection */}
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-900 rounded-lg border border-indigo-200/60 shadow-sm hover:shadow-md transition-all duration-300">
+                <Calendar className="w-4 h-4 text-indigo-600" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground">
+                    Step 1: Forecast Date
+                  </span>
+                  <input
+                    type="date"
+                    value={forecastDate}
+                    onChange={(e) => setForecastDate(e.target.value)}
+                    className="border-0 bg-transparent text-slate-700 dark:text-slate-200 font-semibold text-base focus:outline-none cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Step 2: Site Selection */}
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-900 rounded-lg border border-teal-200/60 shadow-sm hover:shadow-md transition-all duration-300">
+                <MapPin className="w-4 h-4 text-teal-600" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground">
+                    Step 2: Location
+                  </span>
+                  <Select value={selectedSite} onValueChange={setSelectedSite}>
+                    <SelectTrigger className="border-0 text-slate-700 dark:text-slate-200 font-semibold text-base h-auto p-0 min-w-[150px]">
+                      <SelectValue placeholder="Choose location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.keys(sites).map((site) => (
+                        <SelectItem key={site} value={site}>
+                          {getSiteName(site)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Step 3: Run Forecast */}
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={runForecast}
+                  disabled={loading || !selectedSite || !forecastDate}
+                  className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 text-base"
+                >
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                  )}
+                  {loading ? "Running..." : "Run Forecast"}
+                </Button>
+                <Button
+                  onClick={simulateForecast}
+                  disabled={loading || !selectedSite}
+                  variant="outline"
+                  className="border-teal-600 text-teal-600 hover:bg-teal-50 font-semibold px-6 py-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 text-base"
+                >
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Activity className="w-4 h-4 mr-2" />
+                  )}
+                  Simulate
+                </Button>
+              </div>
+            </div>
+
+            {/* Selected Values Summary */}
+            {(forecastDate || selectedSite) && (
+              <div className="mt-4 p-3 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Selected:</strong>{" "}
+                  {forecastDate && (
+                    <Badge variant="secondary" className="mr-2">
+                      📅{" "}
+                      {new Date(forecastDate).toLocaleDateString("en-US", {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </Badge>
+                  )}
+                  {selectedSite && (
+                    <Badge variant="secondary">
+                      📍 {getSiteName(selectedSite)}
+                    </Badge>
+                  )}
+                </p>
+              </div>
             )}
-            {loading ? "Running..." : "Forecast"}
-          </Button>
-          <Button
-            onClick={simulateForecast}
-            disabled={loading || !selectedSite}
-            variant="outline"
-            className="border-teal-600 text-teal-600 hover:bg-teal-50 font-semibold px-6 py-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 text-base"
-          >
-            {loading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Activity className="w-4 h-4 mr-2" />
-            )}
-            Simulate
-          </Button>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {stats && (
@@ -819,52 +886,54 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
         </div>
       )}
 
-      <Card className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarClock className="w-5 h-5" />
-            Forecast Horizon
-          </CardTitle>
-          <CardDescription>
-            Adjust the time range for the forecast visualization (Next{" "}
-            {forecastLimit} hours)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <Badge variant="outline" className="w-16 justify-center">
-              1h
-            </Badge>
-            <Slider
-              defaultValue={[48]}
-              max={maxForecastHours}
-              min={1}
-              step={1}
-              value={[forecastLimit]}
-              onValueChange={(vals) => setForecastLimit(vals[0])}
-              className="flex-1"
-            />
-            <Badge variant="outline" className="w-20 justify-center">
-              {maxForecastHours}h
-            </Badge>
-          </div>
-          <p className="text-base text-center mt-3 text-muted-foreground">
-            Showing {forecastData.length} of {maxForecastHours} forecast hours
-          </p>
-        </CardContent>
-      </Card>
+      {/* Forecast Horizon slider - only show in full view mode */}
+      {viewMode === "full" && chartData.length > 0 && (
+        <Card className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CalendarClock className="w-5 h-5" />
+              Forecast Horizon
+            </CardTitle>
+            <CardDescription>
+              Adjust the time range for the forecast visualization (Next{" "}
+              {forecastLimit} hours)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <Badge variant="outline" className="w-16 justify-center">
+                1h
+              </Badge>
+              <Slider
+                defaultValue={[48]}
+                max={maxForecastHours}
+                min={1}
+                step={1}
+                value={[forecastLimit]}
+                onValueChange={(vals) => setForecastLimit(vals[0])}
+                className="flex-1"
+              />
+              <Badge variant="outline" className="w-20 justify-center">
+                {maxForecastHours}h
+              </Badge>
+            </div>
+            <p className="text-base text-center mt-3 text-muted-foreground">
+              Showing {forecastData.length} of {maxForecastHours} forecast hours
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Date Selection Card */}
+      {/* View Options Card - for switching between full view and daily view */}
       {chartData.length > 0 && availableDates.length > 0 && (
         <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-indigo-600" />
-              Date Selection
+              View Options
             </CardTitle>
             <CardDescription>
-              Select a specific date to view 24-hour data. Only dates with
-              previous day data available can be selected.
+              Switch between full forecast view or filter by specific day
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -878,14 +947,14 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
                   }}
                   className="text-sm"
                 >
-                  Full View
+                  Full Forecast View
                 </Button>
                 <Button
                   variant={viewMode === "daily" ? "default" : "outline"}
                   onClick={() => setViewMode("daily")}
                   className="text-sm"
                 >
-                  Daily View (24h)
+                  24-Hour Daily View
                 </Button>
               </div>
 
@@ -895,8 +964,8 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
                     value={selectedDate || ""}
                     onValueChange={(val) => setSelectedDate(val)}
                   >
-                    <SelectTrigger className="w-[200px] bg-white dark:bg-slate-900">
-                      <SelectValue placeholder="Select a date" />
+                    <SelectTrigger className="w-[220px] bg-white dark:bg-slate-900">
+                      <SelectValue placeholder="Select a day to view" />
                     </SelectTrigger>
                     <SelectContent>
                       {selectableDates.map((date) => (
@@ -916,7 +985,11 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
                       variant="secondary"
                       className="text-sm bg-indigo-100 dark:bg-indigo-900/50"
                     >
-                      Showing 24 hours
+                      📊 Showing 24 hours for{" "}
+                      {new Date(selectedDate).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
                     </Badge>
                   )}
                 </div>
@@ -925,18 +998,16 @@ export default function AqiDashboard({ onForecastUpdate }: AqiDashboardProps) {
 
             {viewMode === "daily" && !selectedDate && (
               <p className="text-sm text-amber-600 dark:text-amber-400">
-                Please select a date to view its 24-hour data.
+                ⚠️ Please select a specific date from the dropdown to view its
+                24-hour data.
               </p>
             )}
 
             <div className="p-3 bg-white/50 dark:bg-slate-900/50 rounded-lg border">
               <p className="text-sm text-muted-foreground">
-                <strong>Available date range:</strong> {availableDates[0]} to{" "}
-                {availableDates[availableDates.length - 1]}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Total days with data: {availableDates.length} | Selectable days:{" "}
-                {selectableDates.length}
+                <strong>Forecast data range:</strong> {availableDates[0]} to{" "}
+                {availableDates[availableDates.length - 1]} (
+                {availableDates.length} days total)
               </p>
             </div>
           </CardContent>

@@ -10,15 +10,16 @@ export const MapViz: React.FC = () => {
   const [activeCity, setActiveCity] = useState<number | null>(null);
 
   // 7 Locations Config
-  const locations = [
-    { id: 1, name: 'New Delhi', x: 25, y: 30, risk: 'High' },
-    { id: 2, name: 'Mumbai', x: 18, y: 55, risk: 'Moderate' },
-    { id: 3, name: 'Bangalore', x: 28, y: 75, risk: 'Low' },
-    { id: 4, name: 'Chennai', x: 42, y: 70, risk: 'Moderate' },
-    { id: 5, name: 'Kolkata', x: 62, y: 45, risk: 'High' },
-    { id: 6, name: 'Hyderabad', x: 32, y: 60, risk: 'Moderate' },
-    { id: 7, name: 'Ahmedabad', x: 12, y: 40, risk: 'High' },
-  ];
+const locations = [
+  { id: 1, name: "Dwarka", x: 22, y: 68, risk: "High" },
+  { id: 2, name: "Defence Colony", x: 48, y: 58, risk: "Moderate" },
+  { id: 3, name: "Narela Industrial Complex", x: 30, y: 18, risk: "Low" },
+  { id: 4, name: "Karnal Road", x: 38, y: 28, risk: "Moderate" },
+  { id: 5, name: "Govindpuri", x: 62, y: 72, risk: "High" },
+  { id: 6, name: "Rohini", x: 18, y: 38, risk: "Moderate" },
+  { id: 7, name: "Karawal Nagar", x: 72, y: 26, risk: "High" }
+];
+
 
   // Simulate timeline playback
   useEffect(() => {

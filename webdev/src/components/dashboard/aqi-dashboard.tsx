@@ -106,7 +106,6 @@ interface Site {
   latitude: number;
   longitude: number;
   name: string;
-  available_dates: (string | Date)[];
   predictable_dates: (string | Date)[];
 }
 

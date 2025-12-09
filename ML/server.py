@@ -38,6 +38,7 @@ logger = logging.getLogger("AirQualityServer")
 models = {}
 era5_data = None
 site_dates_cache = {}  # Cache for site available dates
+sites_cache = []  # Pre-computed sites response for /sites/ endpoint
 
 # --- Feature Columns ---
 FEATURE_COLS = [
@@ -141,13 +142,11 @@ def load_sites_data():
                     "latitude": row["Latitude N"],
                     "longitude": row["Longitude E"],
                     "name": f"Site {site_id}",
-                    "available_dates": [],
                     "predictable_dates": []
                 }
                 
-                # Add dates from cache if available
+                # Add predictable dates from cache if available
                 if site_id in site_dates_cache:
-                    site_info["available_dates"] = site_dates_cache[site_id]["available_dates"]
                     site_info["predictable_dates"] = site_dates_cache[site_id]["predictable_dates"]
                 
                 sites.append(site_info)
@@ -308,8 +307,14 @@ async def parse_uploaded_file(file: UploadFile) -> pd.DataFrame:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global sites_cache
+    
     load_era5_data()
     load_site_dates()  # Load available dates for all sites
+    
+    # Pre-compute and cache sites data for fast /sites/ responses
+    sites_cache = load_sites_data()
+    logger.info(f"✅ Sites data cached: {len(sites_cache)} sites with predictable dates")
     
     o3_path = ARTIFACT_DIR / "production_O3_era5_spatial.json"
     no2_path = ARTIFACT_DIR / "production_NO2_era5_spatial.json"
@@ -327,6 +332,7 @@ async def lifespan(app: FastAPI):
     yield
     models.clear()
     site_dates_cache.clear()
+    sites_cache = []
 
 app = FastAPI(lifespan=lifespan)
 
@@ -432,10 +438,10 @@ async def run_forecast_pipeline(df: pd.DataFrame, site_id: str, resample: Option
 # --- A. Forecast (Default) ---
 @app.get("/sites/")
 async def get_sites():
-    sites = await run_in_threadpool(load_sites_data)
-    if not sites:
+    """Return cached sites data (pre-computed at startup for fast response)"""
+    if not sites_cache:
         raise HTTPException(status_code=404, detail="No sites data available")
-    return sites
+    return sites_cache
 
 class ForecastByDateInput(BaseModel):
     site_id: str

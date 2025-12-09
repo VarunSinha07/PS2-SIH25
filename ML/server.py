@@ -506,6 +506,7 @@ async def websocket_predict(websocket: WebSocket):
             # Send response with actual, historical, predicted, forecast, and metrics
             ws_response = {
                 "dates": res.get("dates", []),
+                "historical": historical,
                 "actual": res.get("actual", {}),
                 "historical": res.get("historical", {}),
                 "predicted": res.get("predicted", {}),

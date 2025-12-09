@@ -89,3 +89,10 @@ PS2-SIH25/
 ├── docker-compose.yml  # Orchestration
 └── nginx/              # Reverse proxy config
 ```
+## Deployment
+### Azure Deployment
+
+The application is deployed on Azure and accessible at:
+
+- **Live Dashboard**: [http://52.172.175.100:3000/](http://52.172.175.100:3000/)
+- **API Documentation**: [http://52.172.175.100:3000/api/docs](http://52.172.175.100:3000/api/docs)

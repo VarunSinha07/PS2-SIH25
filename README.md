@@ -47,6 +47,16 @@ The easiest way to run the entire stack is using Docker Compose.
 
 ### Local Development
 
+### Environment Configuration
+
+Before running the application, you must set up environment variables:
+
+1. **Copy the example file**
+   ```bash
+   cp webdev/.env.example webdev/.env
+
+### Config the .env to start this running
+
 #### Frontend (`webdev/`)
 ```bash
 cd webdev

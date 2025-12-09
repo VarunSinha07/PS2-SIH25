@@ -35,7 +35,11 @@ export default function Home() {
         <section id="pollutants" className="scroll-mt-20">
           <PollutantExplainer />
         </section>
-
+    {/* 5. The Demo (Deep Dark) */}
+        <section id="monitoring" className="scroll-mt-20">
+          <MapViz />
+          <ModelReliabilityMetrics />
+        </section>
         {/* 4. The Process (Light) */}
         <section className="scroll-mt-20">
           <HowItWorks />
@@ -44,11 +48,7 @@ export default function Home() {
 <section className="scroll-mt-20">
   <Slider initial={75} />
 </section>
-        {/* 5. The Demo (Deep Dark) */}
-        <section id="monitoring" className="scroll-mt-20">
-          <MapViz />
-          <ModelReliabilityMetrics />
-        </section>
+    
 
         {/* 6. The Solution (Light) */}
         <section id="policy-simulator" className="scroll-mt-20">
